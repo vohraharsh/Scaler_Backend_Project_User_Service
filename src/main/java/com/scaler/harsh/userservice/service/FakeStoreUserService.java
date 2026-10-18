@@ -8,6 +8,9 @@ import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.CachePut;
+import org.springframework.cache.annotation.Cacheable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +25,7 @@ public class FakeStoreUserService implements UserService {
     }
 
     @Override
+    @Cacheable(value = "users", key = "#id")
     public User getUserById(Integer id) {
         ResponseEntity<FakeStoreUserDTO> response;
         try {
@@ -81,6 +85,7 @@ public class FakeStoreUserService implements UserService {
     }
 
     @Override
+    @CachePut(value = "users", key = "#id")
     public User updateUser(Integer id, CreateUserRequestDTO request) {
         FakeStoreUserDTO requestDto = FakeStoreUserDTO.from(request);
         HttpEntity<FakeStoreUserDTO> requestEntity = new HttpEntity<>(requestDto);
@@ -104,6 +109,7 @@ public class FakeStoreUserService implements UserService {
     }
 
     @Override
+    @CacheEvict(value = "users", key = "#id")
     public void deleteUser(Integer id) {
         try {
             restTemplate.delete("https://fakestoreapi.com/users/" + id);
