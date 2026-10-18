@@ -25,13 +25,14 @@ public class FakeStoreUserDTO {
         user.setEmail(this.email);
         user.setUsername(this.username);
         user.setPassword(this.password);
+        user.setName(this.name);
         user.setAddress(this.address);
         user.setPhone(this.phone);
 
         return user;
     }
 
-    public static FakeStoreUserDTO fromUser(CreateUserRequestDTO request) {
+    public static FakeStoreUserDTO from(CreateUserRequestDTO request) {
         FakeStoreUserDTO dto = new FakeStoreUserDTO();
         dto.setEmail(request.getEmail());
         dto.setUsername(request.getUsername());
