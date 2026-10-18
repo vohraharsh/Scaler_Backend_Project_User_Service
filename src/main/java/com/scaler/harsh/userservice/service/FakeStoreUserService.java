@@ -15,7 +15,7 @@ import java.util.List;
 @Service
 public class FakeStoreUserService implements UserService {
 
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
     public FakeStoreUserService(RestTemplate restTemplate) {
         this.restTemplate = restTemplate;
@@ -75,7 +75,9 @@ public class FakeStoreUserService implements UserService {
             throw new ServiceException("User creation failed", HttpStatus.BAD_REQUEST);
         }
 
-        return responseDto.toUser();
+        User user = requestDto.toUser();
+        user.setId(responseDto.getId());
+        return user;
     }
 
     @Override
@@ -96,7 +98,9 @@ public class FakeStoreUserService implements UserService {
             throw new ServiceException("User not found for id: " + id, HttpStatus.NOT_FOUND);
         }
 
-        return response.getBody().toUser();
+        User user = requestDto.toUser();
+        user.setId(id);
+        return user;
     }
 
     @Override
