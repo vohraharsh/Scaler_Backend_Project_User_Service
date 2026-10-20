@@ -55,18 +55,22 @@ public class SelfUserService implements UserService {
         user.setPassword(request.getPassword());
         user.setPhone(request.getPhone());
 
-        Name name = new Name();
-        name.setFirstname(request.getName().getFirstname());
-        name.setLastname(request.getName().getLastname());
-        user.setName(name);
+        if (request.getName() != null) {
+            Name name = new Name();
+            name.setFirstname(request.getName().getFirstname());
+            name.setLastname(request.getName().getLastname());
+            user.setName(name);
+        }
 
-        Address address = new Address();
-        address.setCity(request.getAddress().getCity());
-        address.setStreet(request.getAddress().getStreet());
-        address.setNumber(request.getAddress().getNumber());
-        address.setZipcode(request.getAddress().getZipcode());
-        address.setGeolocation(request.getAddress().getGeolocation());
-        user.setAddress(address);
+        if (request.getAddress() != null) {
+            Address address = new Address();
+            address.setCity(request.getAddress().getCity());
+            address.setStreet(request.getAddress().getStreet());
+            address.setNumber(request.getAddress().getNumber());
+            address.setZipcode(request.getAddress().getZipcode());
+            address.setGeolocation(request.getAddress().getGeolocation());
+            user.setAddress(address);
+        }
 
         return userRepository.save(user);
     }
@@ -85,18 +89,24 @@ public class SelfUserService implements UserService {
         user.setPassword(request.getPassword());
         user.setPhone(request.getPhone());
 
-        Name name = new Name();
-        name.setFirstname(request.getName().getFirstname());
-        name.setLastname(request.getName().getLastname());
-        user.setName(name);
+        // Only touch name/address if the request actually provided them —
+        // a partial update (e.g. just changing email) must not wipe out existing profile data.
+        if (request.getName() != null) {
+            Name name = new Name();
+            name.setFirstname(request.getName().getFirstname());
+            name.setLastname(request.getName().getLastname());
+            user.setName(name);
+        }
 
-        Address address = new Address();
-        address.setCity(request.getAddress().getCity());
-        address.setStreet(request.getAddress().getStreet());
-        address.setNumber(request.getAddress().getNumber());
-        address.setZipcode(request.getAddress().getZipcode());
-        address.setGeolocation(request.getAddress().getGeolocation());
-        user.setAddress(address);
+        if (request.getAddress() != null) {
+            Address address = new Address();
+            address.setCity(request.getAddress().getCity());
+            address.setStreet(request.getAddress().getStreet());
+            address.setNumber(request.getAddress().getNumber());
+            address.setZipcode(request.getAddress().getZipcode());
+            address.setGeolocation(request.getAddress().getGeolocation());
+            user.setAddress(address);
+        }
 
         return userRepository.save(user);
     }
