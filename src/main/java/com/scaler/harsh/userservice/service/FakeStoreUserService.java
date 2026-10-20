@@ -117,4 +117,14 @@ public class FakeStoreUserService implements UserService {
             throw new ServiceException("Could not reach FakeStoreAPI", HttpStatus.SERVICE_UNAVAILABLE);
         }
     }
+
+    @Override
+    public void forgotPassword(String email) {
+        throw new UnsupportedOperationException("Not supported by FakeStoreUserService");
+    }
+
+    @Override
+    public void resetPassword(String token, String newPassword) {
+        throw new UnsupportedOperationException("Not supported by FakeStoreUserService");
+    }
 }
