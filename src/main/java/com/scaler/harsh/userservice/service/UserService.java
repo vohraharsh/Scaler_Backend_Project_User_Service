@@ -11,4 +11,6 @@ public interface UserService {
     User createUser(CreateUserRequestDTO request);
     User updateUser(Integer id, CreateUserRequestDTO request);
     void deleteUser(Integer id);
+    void forgotPassword(String email);
+    void resetPassword(String token, String newPassword);
 }

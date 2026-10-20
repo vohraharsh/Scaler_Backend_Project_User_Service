@@ -9,6 +9,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import com.scaler.harsh.userservice.dto.ForgotPasswordRequestDTO;
+import com.scaler.harsh.userservice.dto.ResetPasswordRequestDTO;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,5 +81,26 @@ public class UserController {
         dto.setAddress(user.getAddress());
         dto.setPhone(user.getPhone());
         return dto;
+    }
+
+    @PostMapping("/users/forgot-password")
+    public String forgotPassword(@RequestBody ForgotPasswordRequestDTO request) {
+        if (request.getEmail() == null || request.getEmail().isBlank()) {
+            throw new ServiceException("Email cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        svc.forgotPassword(request.getEmail());
+        return "If an account exists for this email, a reset link has been generated.";
+    }
+
+    @PostMapping("/users/reset-password")
+    public String resetPassword(@RequestBody ResetPasswordRequestDTO request) {
+        if (request.getToken() == null || request.getToken().isBlank()) {
+            throw new ServiceException("Token cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        if (request.getNewPassword() == null || request.getNewPassword().isBlank()) {
+            throw new ServiceException("New password cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        svc.resetPassword(request.getToken(), request.getNewPassword());
+        return "Password has been reset successfully.";
     }
 }
