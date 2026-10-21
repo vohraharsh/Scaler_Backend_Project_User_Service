@@ -12,6 +12,7 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.CachePut;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.context.annotation.Primary;
 
@@ -26,10 +27,14 @@ public class SelfUserService implements UserService {
 
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public SelfUserService(UserRepository userRepository, PasswordResetTokenRepository passwordResetTokenRepository) {
+    public SelfUserService(UserRepository userRepository,
+                           PasswordResetTokenRepository passwordResetTokenRepository,
+                           PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -52,7 +57,8 @@ public class SelfUserService implements UserService {
         User user = new User();
         user.setEmail(request.getEmail());
         user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
+        // Never store the plaintext password — only its BCrypt hash goes to the database.
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
         user.setPhone(request.getPhone());
 
         if (request.getName() != null) {
@@ -86,7 +92,12 @@ public class SelfUserService implements UserService {
         User user = existing.get();
         user.setEmail(request.getEmail());
         user.setUsername(request.getUsername());
-        user.setPassword(request.getPassword());
+        // Only touch the password if the request actually provided a new one — same partial-update
+        // rule as name/address below. A profile update that isn't changing the password must not
+        // force the client to resend it, and must never overwrite the hash with a blank value.
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
         user.setPhone(request.getPhone());
 
         // Only touch name/address if the request actually provided them —
@@ -149,7 +160,7 @@ public class SelfUserService implements UserService {
         User user = userRepository.findById(resetToken.getUserId())
                 .orElseThrow(() -> new ServiceException("User not found", HttpStatus.NOT_FOUND));
 
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword));
         userRepository.save(user);
 
         passwordResetTokenRepository.delete(resetToken);
