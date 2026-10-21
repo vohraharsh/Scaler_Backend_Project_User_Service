@@ -127,4 +127,9 @@ public class FakeStoreUserService implements UserService {
     public void resetPassword(String token, String newPassword) {
         throw new UnsupportedOperationException("Not supported by FakeStoreUserService");
     }
+
+    @Override
+    public User verifyCredentials(String username, String password) {
+        throw new UnsupportedOperationException("Not supported by FakeStoreUserService");
+    }
 }

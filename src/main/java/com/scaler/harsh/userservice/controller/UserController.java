@@ -8,6 +8,7 @@ import com.scaler.harsh.userservice.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.scaler.harsh.userservice.dto.VerifyCredentialsRequestDTO;
 
 import com.scaler.harsh.userservice.dto.ForgotPasswordRequestDTO;
 import com.scaler.harsh.userservice.dto.ResetPasswordRequestDTO;
@@ -102,5 +103,20 @@ public class UserController {
         }
         svc.resetPassword(request.getToken(), request.getNewPassword());
         return "Password has been reset successfully.";
+    }
+
+    // Internal, service-to-service only — not meant to be called by an end-user client directly.
+    // The password hash never leaves this service: Auth Service sends raw credentials here and
+    // gets back a yes/no (as a 200 with the user, or a 401), never the hash itself.
+    @PostMapping("/users/verify-credentials")
+    public UserResponseDTO verifyCredentials(@RequestBody VerifyCredentialsRequestDTO request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new ServiceException("Username cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        if (request.getPassword() == null || request.getPassword().isBlank()) {
+            throw new ServiceException("Password cannot be empty", HttpStatus.BAD_REQUEST);
+        }
+        User user = svc.verifyCredentials(request.getUsername(), request.getPassword());
+        return convertToResponseDTO(user);
     }
 }

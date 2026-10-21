@@ -13,4 +13,5 @@ public interface UserService {
     void deleteUser(Integer id);
     void forgotPassword(String email);
     void resetPassword(String token, String newPassword);
+    User verifyCredentials(String username, String password);
 }

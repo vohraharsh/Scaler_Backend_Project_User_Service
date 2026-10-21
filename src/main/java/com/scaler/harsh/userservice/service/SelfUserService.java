@@ -165,4 +165,14 @@ public class SelfUserService implements UserService {
 
         passwordResetTokenRepository.delete(resetToken);
     }
+
+    @Override
+    public User verifyCredentials(String username, String password) {
+        User user = userRepository.findByUsername(username);
+        // Same message either way — never reveal whether the username exists.
+        if (user == null || !passwordEncoder.matches(password, user.getPassword())) {
+            throw new ServiceException("Invalid username or password", HttpStatus.UNAUTHORIZED);
+        }
+        return user;
+    }
 }
