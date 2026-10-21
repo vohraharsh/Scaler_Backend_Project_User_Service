@@ -5,6 +5,10 @@ import io.jsonwebtoken.security.Keys;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.mock.web.MockHttpServletResponse;
 
@@ -15,16 +19,23 @@ import java.util.Date;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(MockitoExtension.class)
 class JwtAuthFilterTest {
 
     // Must match jwt.secret in application.properties — this filter verifies tokens signed with it.
     private static final String SECRET = "ThisIsADevOnlySecretKeyForHS256MustBe32BytesOrLonger!";
 
+    @Mock
+    private StringRedisTemplate redisTemplate;
+
     private JwtAuthFilter filter;
 
     @BeforeEach
     void setUp() {
-        filter = new JwtAuthFilter(SECRET);
+        filter = new JwtAuthFilter(SECRET, redisTemplate);
+        // Only the revocation test below cares about this returning true; every other test needs
+        // a token that is NOT revoked, so default to "not in the blocklist" here.
+        lenient().when(redisTemplate.hasKey(anyString())).thenReturn(false);
     }
 
     private String validToken() {
@@ -188,5 +199,23 @@ class JwtAuthFilterTest {
         filter.doFilter(request, response, chain);
 
         assertEquals(401, response.getStatus());
+    }
+
+    // ---------- revocation (gap #4) ----------
+
+    @Test
+    void getUserById_revokedToken_rejects401() throws Exception {
+        String token = validToken();
+        when(redisTemplate.hasKey("revoked-token:" + token)).thenReturn(true);
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/users/1");
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        FilterChain chain = mock(FilterChain.class);
+
+        filter.doFilter(request, response, chain);
+
+        assertEquals(401, response.getStatus());
+        verifyNoInteractions(chain);
     }
 }
