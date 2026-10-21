@@ -2,6 +2,7 @@ package com.scaler.harsh.userservice.service;
 
 import com.scaler.harsh.userservice.dto.CreateUserRequestDTO;
 import com.scaler.harsh.userservice.exceptions.ServiceException;
+import com.scaler.harsh.userservice.kafka.UserEventProducer;
 import com.scaler.harsh.userservice.model.Address;
 import com.scaler.harsh.userservice.model.Name;
 import com.scaler.harsh.userservice.model.PasswordResetToken;
@@ -39,11 +40,14 @@ class SelfUserServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private UserEventProducer userEventProducer;
+
     private SelfUserService selfUserService;
 
     @BeforeEach
     void setUp() {
-        selfUserService = new SelfUserService(userRepository, passwordResetTokenRepository, passwordEncoder);
+        selfUserService = new SelfUserService(userRepository, passwordResetTokenRepository, passwordEncoder, userEventProducer);
     }
 
     private User buildUser(Integer id, String username, String email, String hashedPassword) {
@@ -149,6 +153,43 @@ class SelfUserServiceTest {
         assertEquals("Full", result.getName().getFirstname());
         assertNotNull(result.getAddress());
         assertEquals("City", result.getAddress().getCity());
+    }
+
+    @Test
+    void createUser_publishesUserRegisteredEventWithSavedUserFields() {
+        CreateUserRequestDTO request = new CreateUserRequestDTO();
+        request.setUsername("eventuser");
+        request.setEmail("eventuser@example.com");
+        request.setPassword("pw");
+
+        when(passwordEncoder.encode("pw")).thenReturn("hashedpw");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> {
+            User u = inv.getArgument(0);
+            u.setId(42);
+            return u;
+        });
+
+        selfUserService.createUser(request);
+
+        verify(userEventProducer, times(1))
+                .publishUserRegistered(42, "eventuser", "eventuser@example.com");
+    }
+
+    @Test
+    void createUser_kafkaPublishFails_doesNotPropagateException() {
+        CreateUserRequestDTO request = new CreateUserRequestDTO();
+        request.setUsername("failuser");
+        request.setEmail("failuser@example.com");
+        request.setPassword("pw");
+
+        when(passwordEncoder.encode("pw")).thenReturn("hashedpw");
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        doThrow(new RuntimeException("Kafka broker unreachable"))
+                .when(userEventProducer).publishUserRegistered(any(), anyString(), anyString());
+
+        User result = assertDoesNotThrow(() -> selfUserService.createUser(request));
+
+        assertEquals("failuser", result.getUsername());
     }
 
     // ---------- updateUser ----------

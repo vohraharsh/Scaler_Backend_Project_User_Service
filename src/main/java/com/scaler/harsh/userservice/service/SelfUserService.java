@@ -4,6 +4,7 @@ import com.scaler.harsh.userservice.dto.CreateUserRequestDTO;
 import com.scaler.harsh.userservice.exceptions.ServiceException;
 import com.scaler.harsh.userservice.model.Address;
 import com.scaler.harsh.userservice.model.Name;
+import com.scaler.harsh.userservice.kafka.UserEventProducer;
 import com.scaler.harsh.userservice.model.PasswordResetToken;
 import com.scaler.harsh.userservice.model.User;
 import com.scaler.harsh.userservice.repository.PasswordResetTokenRepository;
@@ -28,13 +29,16 @@ public class SelfUserService implements UserService {
     private final UserRepository userRepository;
     private final PasswordResetTokenRepository passwordResetTokenRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserEventProducer userEventProducer;
 
     public SelfUserService(UserRepository userRepository,
                            PasswordResetTokenRepository passwordResetTokenRepository,
-                           PasswordEncoder passwordEncoder) {
+                           PasswordEncoder passwordEncoder,
+                           UserEventProducer userEventProducer) {
         this.userRepository = userRepository;
         this.passwordResetTokenRepository = passwordResetTokenRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userEventProducer = userEventProducer;
     }
 
     @Override
@@ -78,7 +82,17 @@ public class SelfUserService implements UserService {
             user.setAddress(address);
         }
 
-        return userRepository.save(user);
+        User saved = userRepository.save(user);
+
+        // Fire-and-forget: a Kafka hiccup should not block the registration response.
+        try {
+            userEventProducer.publishUserRegistered(saved.getId(), saved.getUsername(), saved.getEmail());
+        } catch (Exception e) {
+            System.err.println("Failed to publish user-registered event for user "
+                    + saved.getId() + ": " + e.getMessage());
+        }
+
+        return saved;
     }
 
     @Override
